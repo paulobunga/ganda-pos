@@ -11,6 +11,12 @@ import cartSchema from './carts/schema';
 // pending transactions
 import type { PendingTransaction } from './pending_transactions/types';
 import pendingTransactionSchema from './pending_transactions/schema';
+// customers
+import type { Customer } from './customers/types';
+import customerSchema from './customers/schema';
+// debts
+import type { Debt } from './debts/types';
+import debtSchema from './debts/schema';
 
 const db = new Dexie('dPOSDatabase') as Dexie & {
 	categories: EntityTable<
@@ -27,6 +33,14 @@ const db = new Dexie('dPOSDatabase') as Dexie & {
 	>;
 	pending_transactions: EntityTable<
 		PendingTransaction,
+		'id' // primary key "id" (for the typings only)
+	>;
+	customers: EntityTable<
+		Customer,
+		'id' // primary key "id" (for the typings only)
+	>;
+	debts: EntityTable<
+		Debt,
 		'id' // primary key "id" (for the typings only)
 	>;
 };
@@ -50,5 +64,30 @@ db.version(3).stores({
 	pending_transactions: pendingTransactionSchema
 });
 
-export type { Category, Product, Cart, PendingTransaction };
+db.version(4).stores({
+	categories: categorySchema,
+	products: productSchema,
+	carts: cartSchema,
+	pending_transactions: pendingTransactionSchema,
+	customers: customerSchema
+});
+
+db.version(5).stores({
+	categories: categorySchema,
+	products: productSchema,
+	carts: cartSchema,
+	pending_transactions: pendingTransactionSchema,
+	customers: customerSchema
+});
+
+db.version(6).stores({
+	categories: categorySchema,
+	products: productSchema,
+	carts: cartSchema,
+	pending_transactions: pendingTransactionSchema,
+	customers: customerSchema,
+	debts: debtSchema
+});
+
+export type { Category, Product, Cart, PendingTransaction, Customer, Debt };
 export { db };

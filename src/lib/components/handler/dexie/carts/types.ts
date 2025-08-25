@@ -1,7 +1,7 @@
-import type { Product, WeightedProduct } from '../products/types';
+import type { Product } from '../products/types';
 
 export interface CartItem {
-	product: WeightedProduct | Product;
+	product: Product;
 	quantity: number;
 }
 
@@ -10,4 +10,5 @@ export interface Cart {
 	name: string;
 	items: CartItem[];
 	timestamp: string;
+	customerId?: number;
 }

@@ -1,12 +1,28 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
-	import { ShoppingCart, Trash2 } from 'lucide-svelte';
+	import { ShoppingCart, Trash2, User, X } from 'lucide-svelte';
 	import CartItem from './CartItem.svelte';
 	import { cartStore } from '../CartStore.svelte';
 	import CheckoutDialog from './CheckoutDialog.svelte';
 	import * as m from '$lib/paraglide/messages.js';
 	import { numberWithCurrency, isTrue } from '$lib/tools/numbering';
+	import {
+		Dialog,
+		DialogContent,
+		DialogHeader,
+		DialogTitle,
+		DialogTrigger
+	} from '$lib/components/ui/dialog';
+	import CustomerSelector from '$lib/components/customers/CustomerSelector.svelte';
+	import type { Customer } from '$lib/components/handler/dexie/db';
+
+	let isCustomerDialogOpen = $state(false);
+
+	function handleSelectCustomer(event: CustomEvent<Customer>) {
+		cartStore.setCustomer(event.detail);
+		isCustomerDialogOpen = false;
+	}
 </script>
 
 <div
@@ -21,7 +37,7 @@
 				{m.pos_cart()}
 			</h2>
 
-			{#if cartStore.cart.length > 0}
+			{#if cartStore.cart.items.length > 0}
 				<Button variant="ghost" size="sm" onclick={cartStore.clearCart}>
 					<Trash2 class="mr-1 h-4 w-4" />
 					{m.pos_button_clear_cart()}
@@ -30,16 +46,46 @@
 		</div>
 	</div>
 
+	<!-- Customer selection -->
+	<div class="border-b p-4">
+		{#if cartStore.selectedCustomer}
+			<div class="flex items-center justify-between">
+				<div class="flex items-center gap-2">
+					<User class="h-5 w-5" />
+					<span class="font-semibold">{cartStore.selectedCustomer.name}</span>
+				</div>
+				<Button variant="ghost" size="icon" onclick={cartStore.clearCustomer}>
+					<X class="h-4 w-4" />
+				</Button>
+			</div>
+		{:else}
+			<Dialog bind:open={isCustomerDialogOpen}>
+				<DialogTrigger asChild let:builder>
+					<Button builders={[builder]} variant="outline" class="w-full">
+						<User class="mr-2 h-4 w-4" />
+						Select Customer
+					</Button>
+				</DialogTrigger>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>Select a Customer</DialogTitle>
+					</DialogHeader>
+					<CustomerSelector on:select={handleSelectCustomer} />
+				</DialogContent>
+			</Dialog>
+		{/if}
+	</div>
+
 	<!-- Cart items list -->
 	<ScrollArea class="flex-1">
-		{#if cartStore.cart.length === 0}
+		{#if cartStore.cart.items.length === 0}
 			<div class="flex h-64 flex-col items-center justify-center text-muted-foreground">
 				<ShoppingCart class="mb-2 h-12 w-12" />
 				<p>{m.pos_cart_empty()}</p>
 			</div>
 		{:else}
 			<div class="space-y-4 p-4">
-				{#each cartStore.cart as item (item.product.id)}
+				{#each cartStore.cart.items as item (item.product.id)}
 					<CartItem {item} />
 				{/each}
 			</div>
@@ -52,7 +98,7 @@
 			<div class="text-md flex justify-between font-thin">
 				<span>{m.pos_items()}</span>
 				<span>
-					{cartStore.cart.reduce(
+					{cartStore.cart.items.reduce(
 						(sum: number, item: { product: { isWeighted: boolean }; quantity: number }) => {
 							// Only count non-weighed items for the item count
 							if (!isTrue(item.product.isWeighted)) {
@@ -63,7 +109,7 @@
 						0
 					)}
 					{m.pos_items()},
-					{cartStore.cart
+					{cartStore.cart.items
 						.reduce((sum: number, item: { product: { isWeighted: boolean }; quantity: number }) => {
 							// Only count weighed items for the weight
 							if (isTrue(item.product.isWeighted)) {

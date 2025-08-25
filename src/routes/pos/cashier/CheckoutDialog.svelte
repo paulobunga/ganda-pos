@@ -4,7 +4,7 @@
 	import { RadioGroup, RadioGroupItem } from '$lib/components/ui/radio-group';
 	import { Label } from '$lib/components/ui/label';
 	import { toast } from 'svelte-sonner';
-	import { CreditCard, Banknote, Printer, Check } from 'lucide-svelte';
+	import { CreditCard, Banknote, Printer, Check, Users } from 'lucide-svelte';
 	import { cartStore } from '../CartStore.svelte';
 	import * as m from '$lib/paraglide/messages.js';
 	import { numberWithCurrency } from '$lib/tools/numbering';
@@ -19,7 +19,7 @@
 	let isProcessing = $state(false);
 	let isCompleted = $state(false);
 	let paidAmount = $state(0);
-	let enableCheckout = $derived(cartStore.cart.length > 0);
+	let enableCheckout = $derived(cartStore.cart.items.length > 0);
 	let autoCloseTimer = $state<number | null>(null);
 	let remainingSeconds = $state(defaultAutoCloseSeconds);
 
@@ -40,34 +40,50 @@
 		remainingSeconds = defaultAutoCloseSeconds;
 	};
 
-	const paymentMethods = [
-		{
-			id: 'cash',
-			name: m.pos_payment_cash(),
-			icon: Banknote,
-			description: m.pos_payment_cash_description()
-		},
-		{
-			id: 'credit_card',
-			name: m.pos_payment_credit_card(),
-			icon: CreditCard,
-			description: m.pos_payment_credit_card_description()
-		},
-		{
-			id: 'bsc_usdt',
-			name: m.pos_payment_bsc_usdt(),
-			icon: Banknote,
-			description: m.pos_payment_bsc_usdt_description()
+	const paymentMethods = $derived(() => {
+		const methods = [
+			{
+				id: 'cash',
+				name: m.pos_payment_cash(),
+				icon: Banknote,
+				description: m.pos_payment_cash_description()
+			},
+			{
+				id: 'credit_card',
+				name: m.pos_payment_credit_card(),
+				icon: CreditCard,
+				description: m.pos_payment_credit_card_description()
+			},
+			{
+				id: 'bsc_usdt',
+				name: m.pos_payment_bsc_usdt(),
+				icon: Banknote,
+				description: m.pos_payment_bsc_usdt_description()
+			}
+		];
+
+		if (cartStore.selectedCustomer?.isTrusted) {
+			methods.push({
+				id: 'on_tab',
+				name: 'Pay on Tab',
+				icon: Users,
+				description: `Add to ${cartStore.selectedCustomer.name}'s tab`
+			});
 		}
-	];
+
+		return methods;
+	});
 
 	const processPayment = async () => {
 		isProcessing = true;
-		paidAmount = cartStore.total;
+		paidAmount = cartStore.grandTotal;
 
-		// TODO: Add payment processing logic
+		if (selectedPaymentMethod === 'on_tab') {
+			await cartStore.checkoutOnTab();
+		} else {
+			await cartStore.checkout();
+		}
 
-		cartStore.checkout();
 		isProcessing = false;
 		isCompleted = true;
 

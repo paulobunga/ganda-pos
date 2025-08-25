@@ -2,7 +2,7 @@ import { goto } from '$app/navigation';
 import type { WeightedProduct, Product } from './types';
 import { toast } from 'svelte-sonner';
 import * as m from '$lib/paraglide/messages.js';
-import { db, type Cart } from '$lib/components/handler/dexie/db';
+import { db, type Cart, type Customer } from '$lib/components/handler/dexie/db';
 import { getCurrentTime } from '$lib/tools/time';
 import { IsMobile } from '$lib/hooks/is-mobile.svelte.js';
 import { isTrue } from '$lib/tools/numbering';
@@ -15,6 +15,7 @@ export class CartStore {
 		timestamp: new Date().toISOString()
 	});
 	savedCarts: Cart[] = $state([]);
+	selectedCustomer: Customer | null = $state(null);
 
 	// Checkout state variables
 	discount = $state(0);
@@ -40,6 +41,9 @@ export class CartStore {
 		const activeCart = await db.carts.where({ name: '__active__' }).first();
 		if (activeCart) {
 			this.cart = activeCart;
+			if (activeCart.customerId) {
+				this.selectedCustomer = await db.customers.get(activeCart.customerId) || null;
+			}
 		} else {
 			const newCartId = await db.carts.add({
 				name: '__active__',
@@ -50,6 +54,18 @@ export class CartStore {
 		}
 		this.savedCarts = await db.carts.where('name').notEqual('__active__').toArray();
 		this.guestCount = this.savedCarts.length + 1;
+	}
+
+	setCustomer = (customer: Customer) => {
+		this.selectedCustomer = customer;
+		this.cart.customerId = customer.id;
+		this.updateCart();
+	}
+
+	clearCustomer = () => {
+		this.selectedCustomer = null;
+		delete this.cart.customerId;
+		this.updateCart();
 	}
 
 	// Weight input state
@@ -147,6 +163,27 @@ export class CartStore {
 			// Online: process immediately
 			toast.success(m.pos_checkout_success({ total: this.total.toFixed(2) }));
 		}
+
+		this.clearCart();
+		this.showCartOnMobile = false;
+	};
+
+	checkoutOnTab = async () => {
+		if (!this.selectedCustomer || !this.selectedCustomer.isTrusted) {
+			toast.error('Please select a trusted customer to pay on tab.');
+			return;
+		}
+
+		const debt: import('$lib/components/handler/dexie/db').Debt = {
+			customerId: this.selectedCustomer.id!,
+			amount: this.grandTotal,
+			cartId: this.cart.id!,
+			timestamp: new Date().toISOString()
+		};
+
+		await db.debts.add(debt);
+
+		toast.success(`Successfully added to ${this.selectedCustomer.name}'s tab.`);
 
 		this.clearCart();
 		this.showCartOnMobile = false;

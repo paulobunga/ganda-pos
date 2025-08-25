@@ -5,5 +5,6 @@ export const project = {
 	author: 'FrancisXiaobu',
 	description: 'A simple POS system built with SvelteKit, TailwindCSS and Shadcn-Svelte',
 	currency: 'MYR',
-	default_image: 'https://placehold.co/100x100'
+	default_image: 'https://placehold.co/100x100',
+	appUrl: 'http://localhost:5173'
 };
