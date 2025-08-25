@@ -10,6 +10,7 @@
 	"pos_mobile_cart": "Cart",
 	"pos_edit_weight": "Edit Weight",
 	"pos_checkout_success": "Checkout successful! Total amount: {total}",
+	"pos_checkout_offline": "You are offline. Transaction is queued and will be processed when you are back online.",
 	"pos_print_receipt": "Receipt printed successfully!",
 	"pos_guest": "Guest {queue_no}",
 	"pos_invalid_weight": "Please enter a valid weight value",

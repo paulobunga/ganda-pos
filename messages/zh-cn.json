@@ -10,6 +10,7 @@
 	"pos_mobile_cart": "购物车",
 	"pos_edit_weight": "编辑重量",
 	"pos_checkout_success": "结账成功！总金额: {total}",
+	"pos_checkout_offline": "您当前处于离线状态。交易已加入队列，将在您恢复在线后处理。",
 	"pos_print_receipt": "收据已成功打印！",
 	"pos_guest": "访客 {queue_no}",
 	"pos_invalid_weight": "请输入有效的重量值",

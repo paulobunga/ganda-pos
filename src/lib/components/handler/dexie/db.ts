@@ -5,6 +5,12 @@ import categorySchema from './categories/schema';
 // products
 import type { Product } from './products/types';
 import productSchema from './products/schema';
+// carts
+import type { Cart } from './carts/types';
+import cartSchema from './carts/schema';
+// pending transactions
+import type { PendingTransaction } from './pending_transactions/types';
+import pendingTransactionSchema from './pending_transactions/schema';
 
 const db = new Dexie('dPOSDatabase') as Dexie & {
 	categories: EntityTable<
@@ -15,6 +21,14 @@ const db = new Dexie('dPOSDatabase') as Dexie & {
 		Product,
 		'id' // primary key "id" (for the typings only)
 	>;
+	carts: EntityTable<
+		Cart,
+		'id' // primary key "id" (for the typings only)
+	>;
+	pending_transactions: EntityTable<
+		PendingTransaction,
+		'id' // primary key "id" (for the typings only)
+	>;
 };
 
 // Schema declaration:
@@ -23,5 +37,18 @@ db.version(1).stores({
 	products: productSchema
 });
 
-export type { Category, Product };
+db.version(2).stores({
+	categories: categorySchema,
+	products: productSchema,
+	carts: cartSchema
+});
+
+db.version(3).stores({
+	categories: categorySchema,
+	products: productSchema,
+	carts: cartSchema,
+	pending_transactions: pendingTransactionSchema
+});
+
+export type { Category, Product, Cart, PendingTransaction };
 export { db };

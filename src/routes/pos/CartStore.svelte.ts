@@ -1,19 +1,20 @@
 import { goto } from '$app/navigation';
-import type { WeightedProduct, Product, SavedCart } from './types';
+import type { WeightedProduct, Product } from './types';
 import { toast } from 'svelte-sonner';
 import * as m from '$lib/paraglide/messages.js';
-import { localStore, type LocalStorageType } from '$lib/localStore.svelte';
+import { db, type Cart } from '$lib/components/handler/dexie/db';
 import { getCurrentTime } from '$lib/tools/time';
 import { IsMobile } from '$lib/hooks/is-mobile.svelte.js';
 import { isTrue } from '$lib/tools/numbering';
 
 export class CartStore {
 	// Cart state variables
-	localCart: LocalStorageType<{ product: WeightedProduct | Product; quantity: number }[]> =
-		localStore('pos.cart', [] as { product: WeightedProduct | Product; quantity: number }[]);
-	cart: { product: WeightedProduct | Product; quantity: number }[] = $state(this.localCart.current);
-	localSavedCarts: LocalStorageType<SavedCart[]> = localStore('pos.savedCarts', [] as SavedCart[]);
-	savedCarts: SavedCart[] = $state(this.localSavedCarts.current);
+	cart: Cart = $state({
+		name: '__active__',
+		items: [],
+		timestamp: new Date().toISOString()
+	});
+	savedCarts: Cart[] = $state([]);
 
 	// Checkout state variables
 	discount = $state(0);
@@ -23,8 +24,7 @@ export class CartStore {
 	searchQuery = $state('');
 	newCartName = $state('');
 	isSaving = $state(false);
-	localGuestCount: LocalStorageType<number> = localStore('pos.guestCount', 1);
-	guestCount = $state(this.localGuestCount.current);
+	guestCount = $state(1);
 	showSavedCarts = $state(false);
 	showCartOnMobile = $state(false);
 	#isMobile: IsMobile | null = $state(null);
@@ -33,6 +33,23 @@ export class CartStore {
 		$effect.root(() => {
 			this.#isMobile = new IsMobile();
 		});
+		this.loadCarts();
+	}
+
+	async loadCarts() {
+		const activeCart = await db.carts.where({ name: '__active__' }).first();
+		if (activeCart) {
+			this.cart = activeCart;
+		} else {
+			const newCartId = await db.carts.add({
+				name: '__active__',
+				items: [],
+				timestamp: new Date().toISOString()
+			});
+			this.cart = (await db.carts.get(newCartId))!;
+		}
+		this.savedCarts = await db.carts.where('name').notEqual('__active__').toArray();
+		this.guestCount = this.savedCarts.length + 1;
 	}
 
 	// Weight input state
@@ -41,7 +58,7 @@ export class CartStore {
 
 	// Computed values
 	get total() {
-		return this.cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+		return this.cart.items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
 	}
 
 	get grandTotal() {
@@ -52,8 +69,12 @@ export class CartStore {
 	}
 
 	get cartItemCount() {
-		return this.cart.length;
+		return this.cart.items.length;
 	}
+
+	updateCart = async () => {
+		await db.carts.put(this.cart);
+	};
 
 	// Cart management methods
 	addToCart = (product: WeightedProduct | Product) => {
@@ -62,7 +83,7 @@ export class CartStore {
 			this.editingWeightItem = product as WeightedProduct;
 
 			// Check if the product already exists in the cart
-			const existingItem = this.cart.find((item) => item.product.id === product.id);
+			const existingItem = this.cart.items.find((item) => item.product.id === product.id);
 			// Use existing weight if available, otherwise empty string for better UX
 			this.weightInputValue = existingItem ? existingItem.quantity.toString() : '';
 			return;
@@ -70,43 +91,63 @@ export class CartStore {
 			this.editingWeightItem = null;
 		}
 
-		const existingItem = this.cart.find((item) => item.product.id === product.id);
+		const existingItem = this.cart.items.find((item) => item.product.id === product.id);
 
 		if (existingItem) {
-			this.cart = this.cart.map((item) =>
+			this.cart.items = this.cart.items.map((item) =>
 				item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
 			);
 		} else {
-			this.cart = [...this.cart, { product, quantity: 1 }];
+			this.cart.items = [...this.cart.items, { product, quantity: 1 }];
 		}
-		this.localCart.current = this.cart;
+		this.updateCart();
 	};
 
 	removeFromCart = (productId: number) => {
-		const existingItem = this.cart.find((item) => item.product.id === productId);
+		const existingItem = this.cart.items.find((item) => item.product.id === productId);
 
 		if (existingItem && existingItem.quantity > 1) {
-			this.cart = this.cart.map((item) =>
+			this.cart.items = this.cart.items.map((item) =>
 				item.product.id === productId ? { ...item, quantity: item.quantity - 1 } : item
 			);
 		} else {
-			this.cart = this.cart.filter((item) => item.product.id !== productId);
+			this.cart.items = this.cart.items.filter((item) => item.product.id !== productId);
 		}
-		this.localCart.current = this.cart;
+		this.updateCart();
 	};
 
 	deleteFromCart = (productId: number) => {
-		this.cart = this.cart.filter((item) => item.product.id !== productId);
-		this.localCart.current = this.cart;
+		this.cart.items = this.cart.items.filter((item) => item.product.id !== productId);
+		this.updateCart();
 	};
 
-	clearCart = () => {
-		this.cart = [];
-		this.localCart.current = [];
+	clearCart = async () => {
+		this.cart.items = [];
+		await this.updateCart();
 	};
 
-	checkout = () => {
-		toast.success(m.pos_checkout_success({ total: this.total.toFixed(2) }));
+	checkout = async () => {
+		if (!navigator.onLine) {
+			// Offline: queue the transaction
+			const transaction: import('$lib/components/handler/dexie/db').PendingTransaction = {
+				id: (await import('$lib/tools/uuid')).generateUUID(),
+				cart: this.cart,
+				timestamp: new Date().toISOString()
+			};
+
+			await db.pending_transactions.add(transaction);
+
+			if ('serviceWorker' in navigator && 'SyncManager' in window) {
+				const registration = await navigator.serviceWorker.ready;
+				await registration.sync.register('checkout-sync');
+			}
+
+			toast.info(m.pos_checkout_offline());
+		} else {
+			// Online: process immediately
+			toast.success(m.pos_checkout_success({ total: this.total.toFixed(2) }));
+		}
+
 		this.clearCart();
 		this.showCartOnMobile = false;
 	};
@@ -116,45 +157,36 @@ export class CartStore {
 	};
 
 	// Saved carts methods
-	saveCurrentCart = () => {
-		if (this.cart.length === 0) return;
+	saveCurrentCart = async () => {
+		if (this.cart.items.length === 0) return;
 
 		this.isSaving = true;
 
-		// Use "Guest X" if no name provided
 		const cartName = this.newCartName.trim() || m.pos_guest({ queue_no: this.guestCount });
-		if (!this.newCartName.trim()) {
-			this.guestCount++;
-			this.localGuestCount.current = this.guestCount;
-		}
 
-		// Add the new cart
-		this.savedCarts = [
-			...this.savedCarts,
-			{
-				id: Date.now(),
-				name: cartName,
-				items: [...this.cart],
-				timestamp: getCurrentTime().toISOString()
-			}
-		];
+		const newCart: Cart = {
+			name: cartName,
+			items: [...this.cart.items],
+			timestamp: getCurrentTime().toISOString()
+		};
 
-		this.localSavedCarts.current = this.savedCarts;
+		await db.carts.add(newCart);
 
 		this.newCartName = '';
 		this.isSaving = false;
-		this.clearCart();
+		await this.clearCart();
+		await this.loadCarts();
 	};
 
-	loadSavedCart = (savedCart: SavedCart) => {
+	loadSavedCart = async (savedCart: Cart) => {
 		// load the saved cart into the cart
-		this.cart = [...savedCart.items];
-		this.localCart.current = this.cart;
+		this.cart.items = [...savedCart.items];
+		await this.updateCart();
 
 		// Remove the loaded cart from saved carts
-		this.deleteSavedCart(savedCart.id);
+		await this.deleteSavedCart(savedCart.id!);
 
-		if (this.cart.length === 0) {
+		if (this.cart.items.length === 0) {
 			this.showSavedCarts = false;
 		}
 
@@ -164,13 +196,11 @@ export class CartStore {
 		}
 	};
 
-	deleteSavedCart = (id: number) => {
-		this.savedCarts = this.savedCarts.filter((cart) => cart.id !== id);
-		this.localSavedCarts.current = this.savedCarts;
+	deleteSavedCart = async (id: number) => {
+		await db.carts.delete(id);
+		await this.loadCarts();
 
 		if (this.savedCarts.length === 0) {
-			this.guestCount = 1;
-			this.localGuestCount.current = 1;
 			this.showSavedCarts = false;
 		}
 	};
@@ -207,16 +237,18 @@ export class CartStore {
 			return;
 		}
 
-		const existingItem = this.cart.find((item) => item.product.id === this.editingWeightItem?.id);
+		const existingItem = this.cart.items.find(
+			(item) => item.product.id === this.editingWeightItem?.id
+		);
 
 		if (existingItem) {
-			this.cart = this.cart.map((item) =>
+			this.cart.items = this.cart.items.map((item) =>
 				item.product.id === this.editingWeightItem?.id ? { ...item, quantity: weight } : item
 			);
 		} else {
-			this.cart = [...this.cart, { product: this.editingWeightItem, quantity: weight }];
+			this.cart.items = [...this.cart.items, { product: this.editingWeightItem, quantity: weight }];
 		}
-		this.localCart.current = this.cart;
+		this.updateCart();
 
 		// Reset the state
 		this.editingWeightItem = null;
