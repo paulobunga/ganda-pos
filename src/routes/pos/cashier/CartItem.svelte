@@ -3,13 +3,12 @@
 	import { Separator } from '$lib/components/ui/separator';
 	import { Plus, Minus } from 'lucide-svelte';
 	import DeleteFromCart from './DeleteFromCart.svelte';
-	import type { WeightedProduct } from '../types';
 	import { cartStore } from '../CartStore.svelte';
-	import * as m from '$lib/paraglide/messages.js';
 	import { formatNumber, isTrue } from '$lib/tools/numbering';
 	import { project } from '$lib/index';
+    import type { Product } from '../types';
 
-	let { item } = $props();
+	let { item }: { item: { product: Product, quantity: number } } = $props();
 
 	const subtotal = $derived(item.product.price * item.quantity);
 </script>
@@ -53,9 +52,9 @@
 						size="sm"
 						class="h-8"
 						onclick={() =>
-							cartStore.handleEditWeight(item.product as WeightedProduct, item.quantity)}
+							cartStore.handleEditWeight(item.product, item.quantity)}
 					>
-						{m.pos_edit_weight()}
+						Edit Weight
 					</Button>
 				{:else}
 					<div class="flex items-center overflow-hidden rounded-md border">

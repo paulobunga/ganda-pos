@@ -25,54 +25,12 @@
 			];
 
 			const products = [
-				{
-					id: uuidv4(),
-					name: 'Lager',
-					price: 5.0,
-					categoryId: categories[0].id,
-					stock: 100,
-					isWeight: false
-				},
-				{
-					id: uuidv4(),
-					name: 'Stout',
-					price: 6.0,
-					categoryId: categories[0].id,
-					stock: 100,
-					isWeight: false
-				},
-                {
-					id: uuidv4(),
-					name: 'IPA',
-					price: 6.5,
-					categoryId: categories[0].id,
-					stock: 100,
-					isWeight: false
-				},
-				{
-					id: uuidv4(),
-					name: 'Red Wine',
-					price: 8.0,
-					categoryId: categories[1].id,
-					stock: 50,
-					isWeight: false
-				},
-				{
-					id: uuidv4(),
-					name: 'White Wine',
-					price: 8.0,
-					categoryId: categories[1].id,
-					stock: 50,
-					isWeight: false
-				},
-				{
-					id: uuidv4(),
-					name: 'Peanuts',
-					price: 2.0,
-					categoryId: categories[2].id,
-					stock: 200,
-					isWeight: false
-				}
+				{ id: uuidv4(), name: 'Lager', price: 5.0, categoryId: categories[0].id, stock: 100, isWeight: false },
+				{ id: uuidv4(), name: 'Stout', price: 6.0, categoryId: categories[0].id, stock: 100, isWeight: false },
+                { id: uuidv4(), name: 'IPA', price: 6.5, categoryId: categories[0].id, stock: 100, isWeight: false },
+				{ id: uuidv4(), name: 'Red Wine', price: 8.0, categoryId: categories[1].id, stock: 50, isWeight: false },
+				{ id: uuidv4(), name: 'White Wine', price: 8.0, categoryId: categories[1].id, stock: 50, isWeight: false },
+				{ id: uuidv4(), name: 'Peanuts', price: 2.0, categoryId: categories[2].id, stock: 200, isWeight: false }
 			];
 
 			await db.categories.bulkAdd(categories);

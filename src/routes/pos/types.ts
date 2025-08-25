@@ -5,16 +5,11 @@ export interface Product {
 	price: number;
 	unit?: string;
 	category: string;
-	isWeighted: false;
-}
-
-export interface WeightedProduct extends Omit<Product, 'isWeighted'> {
-	isWeighted: true;
-	unit: string;
+	isWeighted: boolean; // Keep this to differentiate
 }
 
 export interface CartItem {
-	product: WeightedProduct | Product;
+	product: Product;
 	quantity: number;
 }
 
