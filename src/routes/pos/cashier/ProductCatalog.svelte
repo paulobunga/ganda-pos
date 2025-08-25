@@ -5,7 +5,6 @@
 	import ProductItem from './ProductItem.svelte';
 	import { cartStore } from '../CartStore.svelte';
 	import { Loader2, AlertTriangle } from 'lucide-svelte';
-	import * as m from '$lib/paraglide/messages.js';
 	// load data
 	import {
 		actions as categoriesActions,
@@ -115,7 +114,7 @@
 				</div>
 			{:else}
 				<div class="flex h-full items-center justify-center">
-					<p>{m.pos_no_products_found()}</p>
+					<p>No products found</p>
 				</div>
 			{/if}
 		{:else}

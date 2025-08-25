@@ -4,7 +4,6 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Trash2 } from 'lucide-svelte';
 	import { cartStore } from '../CartStore.svelte';
-	import * as m from '$lib/paraglide/messages.js';
 
 	let isNewOpen = $state(true);
 
@@ -57,10 +56,10 @@
 >
 	<Dialog.Content class="max-w-sm rounded-lg sm:max-w-md">
 		<Dialog.Header>
-			<Dialog.Title class="text-xl">{m.pos_edit_weight()}</Dialog.Title>
+			<Dialog.Title class="text-xl">Edit Weight</Dialog.Title>
 			<Dialog.Description>
 				{#if cartStore.editingWeightItem}
-					{m.pos_edit_weight_description({ name: cartStore.editingWeightItem.name })}
+					Please enter the weight for {cartStore.editingWeightItem.name}
 				{/if}
 			</Dialog.Description>
 		</Dialog.Header>
@@ -74,7 +73,7 @@
 						value={cartStore.weightInputValue}
 						oninput={handleInput}
 						class="h-14 pr-12 text-center text-xl font-semibold"
-						placeholder={m.pos_edit_weight_placeholder()}
+						placeholder="0.00"
 						autocomplete="off"
 					/>
 					<div class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
@@ -111,14 +110,14 @@
 
 		<Dialog.Footer class="flex flex-col flex-col-reverse gap-2 sm:flex-row sm:justify-between">
 			<Button variant="outline" onclick={cartStore.cancelWeightInput}>
-				{m.pos_button_cancel()}
+				Cancel
 			</Button>
 			<Button
 				class="bg-blue-700 text-white hover:bg-blue-800"
 				onclick={cartStore.confirmWeightInput}
 				disabled={!cartStore.weightInputValue || parseFloat(cartStore.weightInputValue) <= 0}
 			>
-				{m.pos_button_confirm_weight()}
+				Confirm
 			</Button>
 		</Dialog.Footer>
 	</Dialog.Content>

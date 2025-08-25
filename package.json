@@ -43,7 +43,6 @@
 		"vite": "^6.0.0"
 	},
 	"dependencies": {
-		"@inlang/paraglide-sveltekit": "^0.15.5",
 		"dexie": "^4.0.11"
 	}
 }

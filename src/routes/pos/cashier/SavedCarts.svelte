@@ -4,7 +4,6 @@
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
 	import { ShoppingCart, Trash2, Save, Loader2 } from 'lucide-svelte';
 	import { cartStore } from '../CartStore.svelte';
-	import * as m from '$lib/paraglide/messages.js';
 	import { formatDateTime } from '$lib/tools/time';
 	import { isTrue } from '$lib/tools/numbering';
 </script>
@@ -17,7 +16,7 @@
 	<div class="flex h-9 items-center justify-between border-b p-4">
 		<h2 class="flex items-center gap-2 text-lg font-bold">
 			<ShoppingCart class="h-5 w-5" />
-			{m.pos_saved_carts()}
+			Saved
 		</h2>
 	</div>
 
@@ -25,7 +24,7 @@
 		{#if cartStore.savedCarts.length === 0}
 			<div class="flex h-64 flex-col items-center justify-center p-4 text-muted-foreground">
 				<ShoppingCart class="mb-2 h-12 w-12" />
-				<p>{m.pos_no_saved_carts()}</p>
+				<p>No saved carts</p>
 			</div>
 		{:else}
 			<div class="space-y-3 p-3">
@@ -50,7 +49,7 @@
 											},
 											0
 										)}
-										{m.pos_items()},
+										Items,
 										{savedCart.items
 											.reduce(
 												(
@@ -65,7 +64,7 @@
 												0
 											)
 											.toFixed(2)}
-										{m.pos_kg()}
+										kg
 									</p>
 									<p class="text-xs text-muted-foreground">
 										{formatDateTime(savedCart.timestamp, 'DD/MM/YYYY HH:mm')}
@@ -100,10 +99,10 @@
 		>
 			{#if cartStore.isSaving}
 				<Loader2 class="mr-2 h-4 w-4 animate-spin" />
-				{m.pos_button_saving()}
+				Saving
 			{:else}
 				<Save class="mr-2 h-4 w-4" />
-				{m.pos_button_save()}
+				Save
 			{/if}
 		</Button>
 	</div>

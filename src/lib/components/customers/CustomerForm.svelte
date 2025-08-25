@@ -29,7 +29,7 @@
 	}
 </script>
 
-<form on:submit={handleSubmit} class="grid gap-4">
+<form onsubmit={handleSubmit} class="grid gap-4">
 	<div class="grid gap-2">
 		<Label for="name">Name</Label>
 		<Input id="name" bind:value={name} required />

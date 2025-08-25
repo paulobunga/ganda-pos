@@ -5,7 +5,6 @@
 	import type { Cart } from '$lib/components/handler/dexie/carts/types';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import { numberWithCurrency, isTrue } from '$lib/tools/numbering';
-	import * as m from '$lib/paraglide/messages.js';
 
 	let cart = $state<Cart | null>(null);
 	let subtotal = $state(0);
@@ -48,17 +47,17 @@
 			<ScrollArea class="flex-1">
 				{#if !cart || cart.items.length === 0}
 					<div class="flex h-full items-center justify-center p-8">
-						<p class="text-xl text-muted-foreground">{m.pos_cart_empty()}</p>
+						<p class="text-xl text-muted-foreground">Cart is empty</p>
 					</div>
 				{:else}
 					<div class="w-full">
 						<div
 							class="sticky top-0 z-10 grid grid-cols-4 gap-4 border-b bg-background p-4 font-medium"
 						>
-							<div>{m.pos_items()}</div>
-							<div class="text-right">{m.pos_qty()}</div>
-							<div class="text-right">{m.pos_price()}</div>
-							<div class="text-right">{m.pos_total()}</div>
+							<div>Items</div>
+							<div class="text-right">Qty</div>
+							<div class="text-right">Price</div>
+							<div class="text-right">Total</div>
 						</div>
 						<div class="divide-y">
 							{#each cart.items as item}
@@ -79,7 +78,7 @@
 		<Card.Footer class="w-full border-t bg-muted/30 px-4 py-2">
 			<div class="flex w-full flex-col">
 				<div class="text-md flex justify-between font-thin">
-					<span>{m.pos_items()}</span>
+					<span>Items</span>
 					<span>
 						{cart
 							? cart.items.reduce(
@@ -96,7 +95,7 @@
 									0
 								)
 							: 0}
-						{m.pos_items()},
+						Items,
 						{cart
 							? cart.items
 									.reduce(
@@ -114,23 +113,23 @@
 									)
 									.toFixed(2)
 							: '0.00'}
-						{m.pos_kg()}
+						kg
 					</span>
 				</div>
 				<div class="text-md mb-1 flex justify-between font-thin">
-					<span>{m.pos_subtotal()}:</span>
+					<span>Subtotal:</span>
 					<span>{numberWithCurrency(subtotal)}</span>
 				</div>
 				<div class="text-md mb-1 flex justify-between font-thin">
-					<span>{m.pos_tax()}:</span>
+					<span>Tax:</span>
 					<span>{numberWithCurrency(tax)}</span>
 				</div>
 				<div class="text-md mb-1 flex justify-between font-thin">
-					<span>{m.pos_discount()}:</span>
+					<span>Discount:</span>
 					<span>{numberWithCurrency(discount)}</span>
 				</div>
 				<div class="flex justify-between text-xl font-bold">
-					<span>{m.pos_total()}:</span>
+					<span>Total:</span>
 					<span>{numberWithCurrency(total)}</span>
 				</div>
 			</div>

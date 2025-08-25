@@ -17,8 +17,6 @@
 	import UserNav from './UserNav.svelte';
 	// Import cart store
 	import { cartStore } from '../CartStore.svelte';
-	// Import i18n
-	import * as m from '$lib/paraglide/messages.js';
 
 	const setVh = () => {
 		const vh = window.innerHeight * 0.01;
@@ -58,7 +56,7 @@
 					class="hidden sm:flex"
 				>
 					<ShoppingCart class="mr-2 h-4 w-4" />
-					{m.pos_saved_count({ count: cartStore.savedCarts.length | 0 })}
+					Saved ({cartStore.savedCarts.length | 0})
 				</Button>
 
 				<UserNav />
@@ -93,9 +91,7 @@
 			onclick={cartStore.toggleSavedCarts}
 		>
 			<ShoppingCart class="h-5 w-5" />
-			<span class="ml-1 text-xs"
-				>{m.pos_saved_count({ count: cartStore.savedCarts.length | 0 })}</span
-			>
+			<span class="ml-1 text-xs">Saved ({cartStore.savedCarts.length | 0})</span>
 		</Button>
 
 		<Separator orientation="vertical" class="h-5" />
@@ -107,7 +103,7 @@
 			class="relative basis-1/2"
 		>
 			<ShoppingCart class="h-5 w-5" />
-			<span class="ml-1 text-xs">{m.pos_cart()}</span>
+			<span class="ml-1 text-xs">Cart</span>
 			{#if cartStore.cartItemCount > 0}
 				<Badge
 					class="flex h-5 w-5 items-center justify-center bg-green-600 px-1.5 py-0.5 text-xs text-white hover:bg-green-600 active:bg-green-600"

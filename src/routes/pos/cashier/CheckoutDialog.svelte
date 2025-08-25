@@ -6,7 +6,6 @@
 	import { toast } from 'svelte-sonner';
 	import { CreditCard, Banknote, Printer, Check, Users } from 'lucide-svelte';
 	import { cartStore } from '../CartStore.svelte';
-	import * as m from '$lib/paraglide/messages.js';
 	import { numberWithCurrency } from '$lib/tools/numbering';
 	import { onDestroy } from 'svelte';
 
@@ -53,21 +52,21 @@
 		const methods: PaymentMethod[] = [
 			{
 				id: 'cash',
-				name: m.pos_payment_cash(),
+				name: 'Cash',
 				icon: Banknote,
-				description: m.pos_payment_cash_description()
+				description: 'Pay with physical cash'
 			},
 			{
 				id: 'credit_card',
-				name: m.pos_payment_credit_card(),
+				name: 'Credit Card',
 				icon: CreditCard,
-				description: m.pos_payment_credit_card_description()
+				description: 'Debit or credit card payment'
 			},
 			{
 				id: 'bsc_usdt',
-				name: m.pos_payment_bsc_usdt(),
+				name: 'BSC-USDT',
 				icon: Banknote,
-				description: m.pos_payment_bsc_usdt_description()
+				description: 'Pay with BSC-USDT'
 			}
 		];
 
@@ -113,7 +112,7 @@
 	};
 
 	const printReceipt = () => {
-		toast.success(m.pos_print_receipt());
+		toast.success('Receipt printed successfully!');
 	};
 
 	const paymentComplete = () => {
@@ -136,18 +135,18 @@
 		onclick={() => (isOpen = true)}
 	>
 		<CreditCard class="mr-2 h-5 w-5" />
-		{m.pos_button_checkout()}
+		Checkout
 	</Button>
 	<Dialog.Content class="max-w-sm rounded-lg sm:max-w-xl">
 		<Dialog.Header>
-			<Dialog.Title class="text-2xl font-bold">{m.pos_complete_purchase()}</Dialog.Title>
+			<Dialog.Title class="text-2xl font-bold">Complete Purchase</Dialog.Title>
 		</Dialog.Header>
 
 		{#if !isCompleted}
 			<div class="py-6">
 				<div class="mb-8 rounded-lg bg-blue-500 p-4 dark:bg-blue-50/10">
 					<div class="mb-1 text-sm text-white dark:text-muted-foreground">
-						{m.pos_total_amount()}
+						Total Amount
 					</div>
 					<div class="text-3xl font-bold text-white dark:text-green-500">
 						{numberWithCurrency(cartStore.total)}
@@ -155,7 +154,7 @@
 				</div>
 
 				<div class="space-y-4">
-					<h3 class="text-lg font-medium">{m.pos_select_payment_method()}</h3>
+					<h3 class="text-lg font-medium">Select Payment Method</h3>
 
 					<RadioGroup value={selectedPaymentMethod} class="grid gap-4 md:grid-cols-3">
 						{#each paymentMethods as method}
@@ -189,7 +188,7 @@
 			</div>
 
 			<Dialog.Footer class="gap-2 sm:gap-0">
-				<Button variant="outline" onclick={() => (isOpen = false)}>{m.pos_button_cancel()}</Button>
+				<Button variant="outline" onclick={() => (isOpen = false)}>Cancel</Button>
 				<Button
 					onclick={processPayment}
 					disabled={isProcessing}
@@ -199,9 +198,9 @@
 						<div
 							class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
 						></div>
-						{m.pos_button_processing()}
+						Processing...
 					{:else}
-						{m.pos_button_confirm_payment()}
+						Confirm Payment
 					{/if}
 				</Button>
 			</Dialog.Footer>
@@ -212,9 +211,9 @@
 				<div class="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-green-500/20">
 					<Check class="h-8 w-8 text-green-500" />
 				</div>
-				<h3 class="mb-2 text-2xl font-bold text-green-500">{m.pos_payment_successful()}</h3>
+				<h3 class="mb-2 text-2xl font-bold text-green-500">Payment Successful!</h3>
 				<p class="mb-8 text-muted-foreground">
-					{@html m.pos_payment_successful_description({ amount: numberWithCurrency(paidAmount) })}
+					{@html `Payment of <span class='font-semibold text-black dark:text-white'>${numberWithCurrency(paidAmount)}</span> has been processed successfully.`}
 				</p>
 
 				<div class="flex w-full gap-3">
@@ -224,13 +223,13 @@
 						onclick={printReceipt}
 					>
 						<Printer class="mr-2 h-4 w-4" />
-						{m.pos_button_print_receipt()}
+						Print Receipt
 					</Button>
 					<Button
 						class="flex-1 bg-blue-600 text-white transition-colors hover:bg-blue-700"
 						onclick={paymentComplete}
 					>
-						{m.pos_button_complete_purchase()} ({remainingSeconds}s)
+						Complete ({remainingSeconds}s)
 					</Button>
 				</div>
 			</div>

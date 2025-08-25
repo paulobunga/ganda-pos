@@ -4,7 +4,6 @@
 	import { Plus, Minus } from 'lucide-svelte';
 	import DeleteFromCart from './DeleteFromCart.svelte';
 	import { cartStore } from '../CartStore.svelte';
-	import * as m from '$lib/paraglide/messages.js';
 	import { formatNumber, isTrue } from '$lib/tools/numbering';
 	import { project } from '$lib/index';
 
@@ -53,7 +52,7 @@
 						class="h-8"
 						onclick={() => cartStore.handleEditWeight(item.product, item.quantity)}
 					>
-						{m.pos_edit_weight()}
+						Edit Weight
 					</Button>
 				{:else}
 					<div class="flex items-center overflow-hidden rounded-md border">

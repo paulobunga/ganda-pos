@@ -5,7 +5,6 @@
 	import CartItem from './CartItem.svelte';
 	import { cartStore } from '../CartStore.svelte';
 	import CheckoutDialog from './CheckoutDialog.svelte';
-	import * as m from '$lib/paraglide/messages.js';
 	import { numberWithCurrency, isTrue } from '$lib/tools/numbering';
 	import {
 		Dialog,
@@ -34,13 +33,13 @@
 		<div class="flex h-9 items-center justify-between">
 			<h2 class="flex items-center gap-2 text-xl font-bold">
 				<ShoppingCart class="h-5 w-5" />
-				{m.pos_cart()}
+				Cart
 			</h2>
 
 			{#if cartStore.cart.items.length > 0}
 				<Button variant="ghost" size="sm" onclick={cartStore.clearCart}>
 					<Trash2 class="mr-1 h-4 w-4" />
-					{m.pos_button_clear_cart()}
+					Clear
 				</Button>
 			{/if}
 		</div>
@@ -80,7 +79,7 @@
 		{#if cartStore.cart.items.length === 0}
 			<div class="flex h-64 flex-col items-center justify-center text-muted-foreground">
 				<ShoppingCart class="mb-2 h-12 w-12" />
-				<p>{m.pos_cart_empty()}</p>
+				<p>Cart is empty</p>
 			</div>
 		{:else}
 			<div class="space-y-4 p-4">
@@ -95,7 +94,7 @@
 	<div class="border-t px-3 py-4 sm:px-4">
 		<div class="flex flex-col pb-4">
 			<div class="text-md flex justify-between font-thin">
-				<span>{m.pos_items()}</span>
+				<span>Items</span>
 				<span>
 					{cartStore.cart.items.reduce(
 						(sum: number, item: { product: { isWeighted: boolean }; quantity: number }) => {
@@ -107,7 +106,7 @@
 						},
 						0
 					)}
-					{m.pos_items()},
+					Items,
 					{cartStore.cart.items
 						.reduce((sum: number, item: { product: { isWeighted: boolean }; quantity: number }) => {
 							// Only count weighed items for the weight
@@ -117,16 +116,16 @@
 							return sum;
 						}, 0)
 						.toFixed(2)}
-					{m.pos_kg()}
+					kg
 				</span>
 			</div>
 			<div class="text-md flex justify-between font-thin">
-				<span>{m.pos_subtotal()}</span>
+				<span>Subtotal</span>
 				<span>{cartStore.total.toFixed(2)}</span>
 			</div>
 			<div class="text-md flex justify-between font-thin">
 				<span>
-					{m.pos_tax()}
+					Tax
 					{#if cartStore.tax}
 						({cartStore.tax}%)
 					{/if}
@@ -134,11 +133,11 @@
 				<span>{cartStore.tax.toFixed(2)}</span>
 			</div>
 			<div class="text-md flex justify-between font-thin">
-				<span>{m.pos_discount()}</span>
+				<span>Discount</span>
 				<span>{cartStore.discount.toFixed(2)}</span>
 			</div>
 			<div class="flex justify-between text-xl font-extrabold">
-				<span>{m.pos_total()}</span>
+				<span>Total</span>
 				<span>{numberWithCurrency(cartStore.grandTotal)}</span>
 			</div>
 		</div>

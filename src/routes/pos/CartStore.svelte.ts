@@ -3,7 +3,6 @@
 import { goto } from '$app/navigation';
 import type { Product } from './types';
 import { toast } from 'svelte-sonner';
-import * as m from '$lib/paraglide/messages.js';
 import { db, type Cart, type Customer } from '$lib/components/handler/dexie/db';
 import { getCurrentTime } from '$lib/tools/time';
 import { IsMobile } from '$lib/hooks/is-mobile.svelte.js';
@@ -162,10 +161,10 @@ export class CartStore {
 				await registration.sync.register('checkout-sync');
 			}
 
-			toast.info(m.pos_checkout_offline());
+			toast.info('You are offline. Transaction is queued and will be processed when you are back online.');
 		} else {
 			// Online: process immediately
-			toast.success(m.pos_checkout_success({ total: this.total.toFixed(2) }));
+			toast.success(`Checkout successful! Total amount: ${this.total.toFixed(2)}`);
 		}
 
 		this.clearCart();
@@ -194,7 +193,7 @@ export class CartStore {
 	};
 
 	printReceipt = () => {
-		toast.success(m.pos_print_receipt());
+		toast.success('Receipt printed successfully!');
 	};
 
 	// Saved carts methods
@@ -203,7 +202,7 @@ export class CartStore {
 
 		this.isSaving = true;
 
-		const cartName = this.newCartName.trim() || m.pos_guest({ queue_no: this.guestCount });
+		const cartName = this.newCartName.trim() || `Guest ${this.guestCount}`;
 
 		const newCart: Cart = {
 			name: cartName,
@@ -274,7 +273,7 @@ export class CartStore {
 
 		const weight = parseFloat(this.weightInputValue);
 		if (isNaN(weight) || weight <= 0) {
-			toast.error(m.pos_invalid_weight());
+			toast.error('Please enter a valid weight value');
 			return;
 		}
 
