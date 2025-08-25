@@ -17,6 +17,9 @@ import customerSchema from './customers/schema';
 // debts
 import type { Debt } from './debts/types';
 import debtSchema from './debts/schema';
+// stock adjustments
+import type { StockAdjustment } from './stock_adjustments/types';
+import stockAdjustmentSchema from './stock_adjustments/schema';
 
 const db = new Dexie('dPOSDatabase') as Dexie & {
 	categories: EntityTable<
@@ -41,6 +44,10 @@ const db = new Dexie('dPOSDatabase') as Dexie & {
 	>;
 	debts: EntityTable<
 		Debt,
+		'id' // primary key "id" (for the typings only)
+	>;
+	stock_adjustments: EntityTable<
+		StockAdjustment,
 		'id' // primary key "id" (for the typings only)
 	>;
 };
@@ -89,5 +96,24 @@ db.version(6).stores({
 	debts: debtSchema
 });
 
-export type { Category, Product, Cart, PendingTransaction, Customer, Debt };
+db.version(7).stores({
+	categories: categorySchema,
+	products: productSchema,
+	carts: cartSchema,
+	pending_transactions: pendingTransactionSchema,
+	customers: customerSchema,
+	debts: debtSchema
+});
+
+db.version(8).stores({
+	categories: categorySchema,
+	products: productSchema,
+	carts: cartSchema,
+	pending_transactions: pendingTransactionSchema,
+	customers: customerSchema,
+	debts: debtSchema,
+	stock_adjustments: stockAdjustmentSchema
+});
+
+export type { Category, Product, Cart, PendingTransaction, Customer, Debt, StockAdjustment };
 export { db };

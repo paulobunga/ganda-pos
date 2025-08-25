@@ -1,52 +1,31 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
-	import type { WeightedProduct, Product } from '../types';
+	import type { Product } from '../types';
+	import type { Cart } from '$lib/components/handler/dexie/carts/types';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import { numberWithCurrency, isTrue } from '$lib/tools/numbering';
-	import { localStore, type LocalStorageType } from '$lib/localStore.svelte';
 	import * as m from '$lib/paraglide/messages.js';
 
-	let cartItems = $state<{ product: WeightedProduct | Product; quantity: number }[]>([]);
+	let cart = $state<Cart | null>(null);
 	let subtotal = $state(0);
 	let tax = $state(0);
 	let discount = $state(0);
 	let total = $state(0);
 
-	const loadCartData = () => {
-		const cartStorage: LocalStorageType<
-			{ product: WeightedProduct | Product; quantity: number }[]
-		> = localStore('pos.cart', [] as { product: WeightedProduct | Product; quantity: number }[]);
-		if (cartStorage.current) {
-			cartItems = cartStorage.current;
-			calculateTotals();
-		}
-	};
-
 	const calculateTotals = () => {
-		subtotal = cartItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+		if (!cart) return;
+		subtotal = cart.items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
 		total = subtotal + tax - discount;
 	};
 
-	// Using $effect to update when the localStorage value changes
-	$effect(() => {
-		const handleStorageChange = (event: StorageEvent) => {
-			if (event.key === 'pos.cart') {
-				loadCartData();
-			}
-		};
-
-		// Listen to the 'storage' event
-		window.addEventListener('storage', handleStorageChange);
-
-		// Cleanup event listener when the component is destroyed
-		return () => {
-			window.removeEventListener('storage', handleStorageChange);
-		};
-	});
-
 	onMount(() => {
-		loadCartData();
+		const channel = new BroadcastChannel('cart-channel');
+
+		channel.onmessage = (event) => {
+			cart = event.data;
+			calculateTotals();
+		};
 
 		// Set the viewport height variable for mobile browsers
 		const setVh = () => {
@@ -67,7 +46,7 @@
 	<Card.Root class="flex h-full w-full flex-1 flex-col">
 		<Card.Content class="flex flex-1 flex-col overflow-hidden rounded-lg p-0">
 			<ScrollArea class="flex-1">
-				{#if cartItems.length === 0}
+				{#if !cart || cart.items.length === 0}
 					<div class="flex h-full items-center justify-center p-8">
 						<p class="text-xl text-muted-foreground">{m.pos_cart_empty()}</p>
 					</div>
@@ -82,7 +61,7 @@
 							<div class="text-right">{m.pos_total()}</div>
 						</div>
 						<div class="divide-y">
-							{#each cartItems as item}
+							{#each cart.items as item}
 								<div class="grid grid-cols-4 gap-4 p-4">
 									<div class="font-medium">{item.product.name}</div>
 									<div class="text-right">{item.quantity}</div>
@@ -102,29 +81,39 @@
 				<div class="text-md flex justify-between font-thin">
 					<span>{m.pos_items()}</span>
 					<span>
-						{cartItems.reduce(
-							(sum: number, item: { product: { isWeighted: boolean }; quantity: number }) => {
-								// Only count non-weighed items for the item count
-								if (!isTrue(item.product.isWeighted)) {
-									return sum + item.quantity;
-								}
-								return sum;
-							},
-							0
-						)}
+						{cart
+							? cart.items.reduce(
+									(
+										sum: number,
+										item: { product: { isWeighted: boolean }; quantity: number }
+									) => {
+										// Only count non-weighed items for the item count
+										if (!isTrue(item.product.isWeighted)) {
+											return sum + item.quantity;
+										}
+										return sum;
+									},
+									0
+								)
+							: 0}
 						{m.pos_items()},
-						{cartItems
-							.reduce(
-								(sum: number, item: { product: { isWeighted: boolean }; quantity: number }) => {
-									// Only count weighed items for the weight
-									if (isTrue(item.product.isWeighted)) {
-										return sum + item.quantity;
-									}
-									return sum;
-								},
-								0
-							)
-							.toFixed(2)}
+						{cart
+							? cart.items
+									.reduce(
+										(
+											sum: number,
+											item: { product: { isWeighted: boolean }; quantity: number }
+										) => {
+											// Only count weighed items for the weight
+											if (isTrue(item.product.isWeighted)) {
+												return sum + item.quantity;
+											}
+											return sum;
+										},
+										0
+									)
+									.toFixed(2)
+							: '0.00'}
 						{m.pos_kg()}
 					</span>
 				</div>

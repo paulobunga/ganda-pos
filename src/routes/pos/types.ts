@@ -1,20 +1,9 @@
-export interface Product {
-	id: number;
-	name: string;
-	image?: string;
-	price: number;
-	unit?: string;
-	category: string;
-	isWeighted: false;
-}
+import type { Product } from '$lib/components/handler/dexie/products/types';
 
-export interface WeightedProduct extends Omit<Product, 'isWeighted'> {
-	isWeighted: true;
-	unit: string;
-}
+export type { Product };
 
 export interface CartItem {
-	product: WeightedProduct | Product;
+	product: Product;
 	quantity: number;
 }
 

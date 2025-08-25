@@ -23,16 +23,29 @@ export interface Product {
 	name: string;
 	category: string;
 	price: number;
+	cost?: number;
 	image: string;
 	isWeighted: boolean;
+	unit?: string;
+	stock?: number;
+	lowStockThreshold?: number;
+	supplier?: string;
+	batchNumber?: string;
+	expiryDate?: string;
 }
 
 export const defaultProduct = {
 	name: '',
 	category: '',
 	price: 0,
+	cost: 0,
 	image: '',
-	isWeighted: false
+	isWeighted: false,
+	stock: 0,
+	lowStockThreshold: 0,
+	supplier: '',
+	batchNumber: '',
+	expiryDate: ''
 };
 
 export default defaultProduct;

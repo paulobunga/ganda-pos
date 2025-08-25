@@ -1,5 +1,7 @@
+/// <reference lib="webworker" />
+
 import { goto } from '$app/navigation';
-import type { WeightedProduct, Product } from './types';
+import type { Product } from './types';
 import { toast } from 'svelte-sonner';
 import * as m from '$lib/paraglide/messages.js';
 import { db, type Cart, type Customer } from '$lib/components/handler/dexie/db';
@@ -16,6 +18,7 @@ export class CartStore {
 	});
 	savedCarts: Cart[] = $state([]);
 	selectedCustomer: Customer | null = $state(null);
+	#channel = new BroadcastChannel('cart-channel');
 
 	// Checkout state variables
 	discount = $state(0);
@@ -69,7 +72,7 @@ export class CartStore {
 	}
 
 	// Weight input state
-	editingWeightItem: WeightedProduct | null = $state(null);
+	editingWeightItem: Product | null = $state(null);
 	weightInputValue = $state('');
 
 	// Computed values
@@ -90,13 +93,14 @@ export class CartStore {
 
 	updateCart = async () => {
 		await db.carts.put(this.cart);
+		this.#channel.postMessage(this.cart);
 	};
 
 	// Cart management methods
-	addToCart = (product: WeightedProduct | Product) => {
+	addToCart = (product: Product) => {
 		if (isTrue(product.isWeighted)) {
 			// For weighted item, open the weight input dialog
-			this.editingWeightItem = product as WeightedProduct;
+			this.editingWeightItem = product;
 
 			// Check if the product already exists in the cart
 			const existingItem = this.cart.items.find((item) => item.product.id === product.id);
@@ -260,7 +264,7 @@ export class CartStore {
 	};
 
 	// Weight input methods
-	handleEditWeight = (product: WeightedProduct, quantity: number) => {
+	handleEditWeight = (product: Product, quantity: number) => {
 		this.editingWeightItem = product;
 		this.weightInputValue = quantity.toString();
 	};

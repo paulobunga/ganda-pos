@@ -23,6 +23,13 @@
 	let autoCloseTimer = $state<number | null>(null);
 	let remainingSeconds = $state(defaultAutoCloseSeconds);
 
+	interface PaymentMethod {
+		id: string;
+		name: string;
+		icon: typeof Banknote;
+		description: string;
+	}
+
 	// Payment methods with enhanced metadata
 	const resetDialog = () => {
 		isOpen = false;
@@ -40,8 +47,10 @@
 		remainingSeconds = defaultAutoCloseSeconds;
 	};
 
-	const paymentMethods = $derived(() => {
-		const methods = [
+	let paymentMethods: PaymentMethod[] = $state([]);
+
+	$effect(() => {
+		const methods: PaymentMethod[] = [
 			{
 				id: 'cash',
 				name: m.pos_payment_cash(),
@@ -71,7 +80,7 @@
 			});
 		}
 
-		return methods;
+		paymentMethods = methods;
 	});
 
 	const processPayment = async () => {
@@ -120,7 +129,7 @@
 <Dialog.Root bind:open={isOpen}>
 	<Button
 		class="flex w-full items-center justify-center rounded-lg bg-blue-700 py-2 text-white hover:bg-blue-800 {cartStore
-			.cart.length === 0
+			.cart.items.length === 0
 			? 'opacity-50'
 			: ''}"
 		disabled={!enableCheckout}

@@ -58,17 +58,7 @@
 <div class="p-8">
 	<div class="flex items-center justify-between">
 		<h2 class="text-3xl font-bold tracking-tight">Customers</h2>
-		<Dialog bind:open={isAddDialogOpen}>
-			<DialogTrigger asChild let:builder>
-				<Button builders={[builder]}>Add Customer</Button>
-			</DialogTrigger>
-			<DialogContent>
-				<DialogHeader>
-					<DialogTitle>Add New Customer</DialogTitle>
-				</DialogHeader>
-				<CustomerForm on:submit={handleAddCustomer} />
-			</DialogContent>
-		</Dialog>
+		<Button onclick={() => (isAddDialogOpen = true)}>Add Customer</Button>
 	</div>
 
 	<div class="mt-4 rounded-md border">
@@ -99,13 +89,22 @@
 					{/each}
 				{:else}
 					<TableRow>
-						<TableCell colspan="5" class="text-center">No customers found.</TableCell>
+						<TableCell colspan={5} class="text-center">No customers found.</TableCell>
 					</TableRow>
 				{/if}
 			</TableBody>
 		</Table>
 	</div>
 </div>
+
+<Dialog bind:open={isAddDialogOpen}>
+	<DialogContent>
+		<DialogHeader>
+			<DialogTitle>Add New Customer</DialogTitle>
+		</DialogHeader>
+		<CustomerForm on:submit={handleAddCustomer} />
+	</DialogContent>
+</Dialog>
 
 {#if selectedCustomer}
 	<Dialog bind:open={isEditDialogOpen}>

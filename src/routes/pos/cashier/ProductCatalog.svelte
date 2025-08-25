@@ -4,7 +4,7 @@
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
 	import ProductItem from './ProductItem.svelte';
 	import { cartStore } from '../CartStore.svelte';
-	import { Loader2 } from 'lucide-svelte';
+	import { Loader2, AlertTriangle } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages.js';
 	// load data
 	import {
@@ -37,6 +37,12 @@
 		})
 	);
 
+	const lowStockProducts = $derived(
+		products.filter(
+			(p) => p.stock !== undefined && p.lowStockThreshold !== undefined && p.stock <= p.lowStockThreshold
+		)
+	);
+
 	onMount(async () => {
 		// set loading to true
 		isLoading = true;
@@ -60,6 +66,23 @@
 </script>
 
 <div class="flex flex-1 flex-col overflow-hidden p-2 sm:p-6">
+	<!-- Low Stock Alerts -->
+	{#if lowStockProducts.length > 0}
+		<div class="mb-4 rounded-lg bg-yellow-100 p-4 dark:bg-yellow-900/50">
+			<h3 class="flex items-center gap-2 font-bold text-yellow-800 dark:text-yellow-300">
+				<AlertTriangle class="h-5 w-5" />
+				Low Stock Alerts
+			</h3>
+			<ul class="ml-7 mt-2 list-disc space-y-1 text-sm text-yellow-700 dark:text-yellow-200">
+				{#each lowStockProducts as product}
+					<li>
+						{product.name} has only {product.stock} items left.
+					</li>
+				{/each}
+			</ul>
+		</div>
+	{/if}
+
 	<!-- Category tabs -->
 	{#if categories.length > 0}
 		<Tabs value={activeCategory} class="mb-0 sm:mb-6">

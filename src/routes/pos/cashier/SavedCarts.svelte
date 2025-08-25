@@ -76,7 +76,9 @@
 									size="sm"
 									onclick={(e) => {
 										e.stopPropagation();
-										cartStore.deleteSavedCart(savedCart.id);
+										if (savedCart.id) {
+											cartStore.deleteSavedCart(savedCart.id);
+										}
 									}}
 								>
 									<Trash2 class="h-4 w-4" />
@@ -92,7 +94,7 @@
 	<div class="flex gap-2 border-t px-3 py-4">
 		<Button
 			onclick={cartStore.saveCurrentCart}
-			disabled={cartStore.isSaving || cartStore.cart.length === 0}
+			disabled={cartStore.isSaving || cartStore.cart.items.length === 0}
 			size="lg"
 			class="w-full bg-green-600 text-white hover:bg-green-800"
 		>

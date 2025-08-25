@@ -59,22 +59,21 @@
 				</Button>
 			</div>
 		{:else}
-			<Dialog bind:open={isCustomerDialogOpen}>
-				<DialogTrigger asChild let:builder>
-					<Button builders={[builder]} variant="outline" class="w-full">
-						<User class="mr-2 h-4 w-4" />
-						Select Customer
-					</Button>
-				</DialogTrigger>
-				<DialogContent>
-					<DialogHeader>
-						<DialogTitle>Select a Customer</DialogTitle>
-					</DialogHeader>
-					<CustomerSelector on:select={handleSelectCustomer} />
-				</DialogContent>
-			</Dialog>
+			<Button onclick={() => (isCustomerDialogOpen = true)} variant="outline" class="w-full">
+				<User class="mr-2 h-4 w-4" />
+				Select Customer
+			</Button>
 		{/if}
 	</div>
+
+	<Dialog bind:open={isCustomerDialogOpen}>
+		<DialogContent>
+			<DialogHeader>
+				<DialogTitle>Select a Customer</DialogTitle>
+			</DialogHeader>
+			<CustomerSelector on:select={handleSelectCustomer} />
+		</DialogContent>
+	</Dialog>
 
 	<!-- Cart items list -->
 	<ScrollArea class="flex-1">

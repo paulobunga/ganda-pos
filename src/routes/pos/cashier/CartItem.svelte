@@ -3,7 +3,6 @@
 	import { Separator } from '$lib/components/ui/separator';
 	import { Plus, Minus } from 'lucide-svelte';
 	import DeleteFromCart from './DeleteFromCart.svelte';
-	import type { WeightedProduct } from '../types';
 	import { cartStore } from '../CartStore.svelte';
 	import * as m from '$lib/paraglide/messages.js';
 	import { formatNumber, isTrue } from '$lib/tools/numbering';
@@ -52,8 +51,7 @@
 						variant="outline"
 						size="sm"
 						class="h-8"
-						onclick={() =>
-							cartStore.handleEditWeight(item.product as WeightedProduct, item.quantity)}
+						onclick={() => cartStore.handleEditWeight(item.product, item.quantity)}
 					>
 						{m.pos_edit_weight()}
 					</Button>

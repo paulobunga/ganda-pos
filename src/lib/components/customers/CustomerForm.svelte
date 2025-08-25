@@ -3,7 +3,6 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
-	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { createEventDispatcher } from 'svelte';
 
 	let { customer = {} as Partial<Customer> } = $props();
@@ -44,7 +43,7 @@
 		<Input id="phone" type="tel" bind:value={phone} />
 	</div>
 	<div class="flex items-center space-x-2">
-		<Checkbox id="isTrusted" bind:checked={isTrusted} />
+		<input type="checkbox" id="isTrusted" bind:checked={isTrusted} class="h-4 w-4" />
 		<Label for="isTrusted">Trusted Customer</Label>
 	</div>
 	<Button type="submit">Save Customer</Button>
