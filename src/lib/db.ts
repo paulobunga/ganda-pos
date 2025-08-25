@@ -17,3 +17,18 @@ export class SveltePosDb extends Dexie {
 }
 
 export const db = new SveltePosDb();
+
+export async function enablePersistentStorage() {
+    if (navigator.storage && navigator.storage.persist) {
+        try {
+            const isPersisted = await navigator.storage.persisted();
+            console.log(`Storage is persisted: ${isPersisted}`);
+            if (!isPersisted) {
+                const result = await navigator.storage.persist();
+                console.log(`Storage persistence request result: ${result}`);
+            }
+        } catch (error) {
+            console.error('Failed to request persistent storage:', error);
+        }
+    }
+}
