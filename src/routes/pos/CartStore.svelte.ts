@@ -1,23 +1,28 @@
 import { goto } from '$app/navigation';
-import type { WeightedProduct, Product, SavedCart } from './types';
+import type { Product, SavedCart } from './types';
 import { toast } from 'svelte-sonner';
-import * as m from '$lib/paraglide/messages.js';
 import { localStore, type LocalStorageType } from '$lib/localStore.svelte';
 import { getCurrentTime } from '$lib/tools/time';
 import { IsMobile } from '$lib/hooks/is-mobile.svelte.js';
 import { isTrue } from '$lib/tools/numbering';
+import { db, type Promotion } from '$lib/db';
 
 export class CartStore {
 	// Cart state variables
-	localCart: LocalStorageType<{ product: WeightedProduct | Product; quantity: number }[]> =
-		localStore('pos.cart', [] as { product: WeightedProduct | Product; quantity: number }[]);
-	cart: { product: WeightedProduct | Product; quantity: number }[] = $state(this.localCart.current);
+	localCart: LocalStorageType<{ product: Product; quantity: number }[]> = localStore(
+		'pos.cart',
+		[] as { product: Product; quantity: number }[]
+	);
+	cart: { product: Product; quantity: number }[] = $state(this.localCart.current);
 	localSavedCarts: LocalStorageType<SavedCart[]> = localStore('pos.savedCarts', [] as SavedCart[]);
 	savedCarts: SavedCart[] = $state(this.localSavedCarts.current);
 
 	// Checkout state variables
-	discount = $state(0);
 	tax = $state(0);
+	appliedPromotions = $state<{ name: string; discount: number }[]>([]);
+
+	// Promotions state
+	promotions = $state<Promotion[]>([]);
 
 	// UI state variables
 	searchQuery = $state('');
@@ -30,44 +35,73 @@ export class CartStore {
 	#isMobile: IsMobile | null = $state(null);
 
 	constructor() {
+		this.loadPromotions();
 		$effect.root(() => {
 			this.#isMobile = new IsMobile();
+			this.#applyPromotions();
 		});
 	}
 
+	async loadPromotions() {
+		this.promotions = await db.promotions.where('isActive').equals(1).toArray();
+	}
+
 	// Weight input state
-	editingWeightItem: WeightedProduct | null = $state(null);
+	editingWeightItem: Product | null = $state(null);
 	weightInputValue = $state('');
 
 	// Computed values
-	get total() {
+	get subtotal() {
 		return this.cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
 	}
 
-	get grandTotal() {
-		const calculatedTax = this.total * (this.tax / 100);
-		const calculatedDiscount = this.discount;
-
-		return this.total + calculatedTax - calculatedDiscount;
+	get taxAmount() {
+		return this.subtotal * (this.tax / 100);
 	}
+
+	get discount() {
+		return this.appliedPromotions.reduce((sum, promo) => sum + promo.discount, 0);
+	}
+
+	get total() {
+		return this.subtotal + this.taxAmount - this.discount;
+	}
+
+	#applyPromotions = () => {
+		const newAppliedPromotions: { name: string; discount: number }[] = [];
+
+		for (const promo of this.promotions) {
+			if (promo.type === 'BUNDLE') {
+				const cartItem = this.cart.find((item) => item.product.id === promo.productId);
+
+				if (cartItem && cartItem.quantity >= promo.buyQuantity) {
+					const numberOfTimesPromoApplies = Math.floor(cartItem.quantity / promo.buyQuantity);
+					const discountAmount =
+						numberOfTimesPromoApplies * promo.getQuantity * cartItem.product.price;
+
+					if (discountAmount > 0) {
+						newAppliedPromotions.push({
+							name: promo.name,
+							discount: discountAmount
+						});
+					}
+				}
+			}
+		}
+		this.appliedPromotions = newAppliedPromotions;
+	};
 
 	get cartItemCount() {
 		return this.cart.length;
 	}
 
 	// Cart management methods
-	addToCart = (product: WeightedProduct | Product) => {
-		if (isTrue(product.isWeighted)) {
-			// For weighted item, open the weight input dialog
-			this.editingWeightItem = product as WeightedProduct;
-
-			// Check if the product already exists in the cart
+	addToCart = (product: Product) => {
+		if (isTrue(product.isWeight)) {
+			this.editingWeightItem = product;
 			const existingItem = this.cart.find((item) => item.product.id === product.id);
-			// Use existing weight if available, otherwise empty string for better UX
 			this.weightInputValue = existingItem ? existingItem.quantity.toString() : '';
 			return;
-		} else {
-			this.editingWeightItem = null;
 		}
 
 		const existingItem = this.cart.find((item) => item.product.id === product.id);
@@ -82,7 +116,7 @@ export class CartStore {
 		this.localCart.current = this.cart;
 	};
 
-	removeFromCart = (productId: number) => {
+	removeFromCart = (productId: string) => {
 		const existingItem = this.cart.find((item) => item.product.id === productId);
 
 		if (existingItem && existingItem.quantity > 1) {
@@ -95,7 +129,7 @@ export class CartStore {
 		this.localCart.current = this.cart;
 	};
 
-	deleteFromCart = (productId: number) => {
+	deleteFromCart = (productId: string) => {
 		this.cart = this.cart.filter((item) => item.product.id !== productId);
 		this.localCart.current = this.cart;
 	};
@@ -106,13 +140,12 @@ export class CartStore {
 	};
 
 	checkout = () => {
-		toast.success(m.pos_checkout_success({ total: this.total.toFixed(2) }));
 		this.clearCart();
 		this.showCartOnMobile = false;
 	};
 
 	printReceipt = () => {
-		toast.success(m.pos_print_receipt());
+		toast.info('This is a stubbed feature.');
 	};
 
 	// Saved carts methods
@@ -121,14 +154,12 @@ export class CartStore {
 
 		this.isSaving = true;
 
-		// Use "Guest X" if no name provided
-		const cartName = this.newCartName.trim() || m.pos_guest({ queue_no: this.guestCount });
+		const cartName = this.newCartName.trim() || `Guest ${this.guestCount}`;
 		if (!this.newCartName.trim()) {
 			this.guestCount++;
 			this.localGuestCount.current = this.guestCount;
 		}
 
-		// Add the new cart
 		this.savedCarts = [
 			...this.savedCarts,
 			{
@@ -138,7 +169,6 @@ export class CartStore {
 				timestamp: getCurrentTime().toISOString()
 			}
 		];
-
 		this.localSavedCarts.current = this.savedCarts;
 
 		this.newCartName = '';
@@ -147,17 +177,9 @@ export class CartStore {
 	};
 
 	loadSavedCart = (savedCart: SavedCart) => {
-		// load the saved cart into the cart
 		this.cart = [...savedCart.items];
 		this.localCart.current = this.cart;
-
-		// Remove the loaded cart from saved carts
 		this.deleteSavedCart(savedCart.id);
-
-		if (this.cart.length === 0) {
-			this.showSavedCarts = false;
-		}
-
 		if (this.#isMobile?.current) {
 			this.showSavedCarts = false;
 			this.showCartOnMobile = true;
@@ -167,7 +189,6 @@ export class CartStore {
 	deleteSavedCart = (id: number) => {
 		this.savedCarts = this.savedCarts.filter((cart) => cart.id !== id);
 		this.localSavedCarts.current = this.savedCarts;
-
 		if (this.savedCarts.length === 0) {
 			this.guestCount = 1;
 			this.localGuestCount.current = 1;
@@ -178,37 +199,28 @@ export class CartStore {
 	// UI toggle methods
 	toggleSavedCarts = () => {
 		this.showSavedCarts = !this.showSavedCarts;
-		// If showing saved carts, hide cart on mobile
-		if (this.showSavedCarts) {
-			this.showCartOnMobile = false;
-		}
+		if (this.showSavedCarts) this.showCartOnMobile = false;
 	};
 
 	toggleCartOnMobile = () => {
 		this.showCartOnMobile = !this.showCartOnMobile;
-		// If showing cart, hide saved carts
-		if (this.showCartOnMobile) {
-			this.showSavedCarts = false;
-		}
+		if (this.showCartOnMobile) this.showSavedCarts = false;
 	};
 
 	// Weight input methods
-	handleEditWeight = (product: WeightedProduct, quantity: number) => {
+	handleEditWeight = (product: Product, quantity: number) => {
 		this.editingWeightItem = product;
 		this.weightInputValue = quantity.toString();
 	};
 
 	confirmWeightInput = () => {
 		if (!this.editingWeightItem) return;
-
 		const weight = parseFloat(this.weightInputValue);
 		if (isNaN(weight) || weight <= 0) {
-			toast.error(m.pos_invalid_weight());
+			toast.error('Invalid weight');
 			return;
 		}
-
 		const existingItem = this.cart.find((item) => item.product.id === this.editingWeightItem?.id);
-
 		if (existingItem) {
 			this.cart = this.cart.map((item) =>
 				item.product.id === this.editingWeightItem?.id ? { ...item, quantity: weight } : item
@@ -217,8 +229,6 @@ export class CartStore {
 			this.cart = [...this.cart, { product: this.editingWeightItem, quantity: weight }];
 		}
 		this.localCart.current = this.cart;
-
-		// Reset the state
 		this.editingWeightItem = null;
 		this.weightInputValue = '';
 	};
@@ -228,11 +238,9 @@ export class CartStore {
 		this.weightInputValue = '';
 	};
 
-	// Navigation
 	navigateToHome = () => {
 		goto('/');
 	};
 }
 
-// Create and export a singleton instance
 export const cartStore = new CartStore();

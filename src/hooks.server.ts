@@ -1,4 +1,8 @@
+// This file is intentionally left empty in the local-first version.
+// Server-side hooks for authentication would be added here if needed.
 import type { Handle } from '@sveltejs/kit';
-import { i18n } from '$lib/i18n';
-const handleParaglide: Handle = i18n.handle();
-export const handle: Handle = handleParaglide;
+
+export const handle: Handle = async ({ event, resolve }) => {
+	const response = await resolve(event);
+	return response;
+};

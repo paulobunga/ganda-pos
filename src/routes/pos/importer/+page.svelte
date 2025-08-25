@@ -5,43 +5,92 @@
 	import { AlertCircle, Upload, Home, Trash } from 'lucide-svelte';
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
-	import { importSampleData, clearDatabase } from '$lib/components/handler/dexie/seed';
+	import { db } from '$lib/db';
+	import { v4 as uuidv4 } from 'uuid';
 
 	let isImporting = $state(false);
-	let progress = $state(0);
 
-	const startImport = async () => {
-		if (isImporting) return;
+	async function clearDatabase() {
+		await Promise.all(db.tables.map((table) => table.clear()));
+		toast.success('Database cleared');
+	}
 
+	async function importSampleData() {
+		isImporting = true;
 		try {
-			isImporting = true;
-			progress = 0;
+			const categories = [
+				{ id: uuidv4(), name: 'Beers' },
+				{ id: uuidv4(), name: 'Wines' },
+				{ id: uuidv4(), name: 'Snacks' }
+			];
 
-			toast.success('Import Started', {
-				description: 'Beginning data import process...'
-			});
+			const products = [
+				{
+					id: uuidv4(),
+					name: 'Lager',
+					price: 5.0,
+					categoryId: categories[0].id,
+					stock: 100,
+					isWeight: false
+				},
+				{
+					id: uuidv4(),
+					name: 'Stout',
+					price: 6.0,
+					categoryId: categories[0].id,
+					stock: 100,
+					isWeight: false
+				},
+                {
+					id: uuidv4(),
+					name: 'IPA',
+					price: 6.5,
+					categoryId: categories[0].id,
+					stock: 100,
+					isWeight: false
+				},
+				{
+					id: uuidv4(),
+					name: 'Red Wine',
+					price: 8.0,
+					categoryId: categories[1].id,
+					stock: 50,
+					isWeight: false
+				},
+				{
+					id: uuidv4(),
+					name: 'White Wine',
+					price: 8.0,
+					categoryId: categories[1].id,
+					stock: 50,
+					isWeight: false
+				},
+				{
+					id: uuidv4(),
+					name: 'Peanuts',
+					price: 2.0,
+					categoryId: categories[2].id,
+					stock: 200,
+					isWeight: false
+				}
+			];
 
-			await importSampleData();
+			await db.categories.bulkAdd(categories);
+			await db.products.bulkAdd(products);
 
-			toast.success('Import Complete', {
-				description: 'All data has been successfully imported'
-			});
+			toast.success('Sample data imported successfully!');
 		} catch (error) {
 			console.error('Import error:', error);
 			toast.error('Import Failed', {
-				description: 'An error occurred during the import process'
+				description: 'An error occurred during the import process.'
 			});
 		} finally {
 			isImporting = false;
 		}
-	};
-
-	const flushDatabase = async () => {
-		await clearDatabase();
-	};
+	}
 
 	const goToHome = () => {
-		goto('/');
+		goto('/pos/cashier');
 	};
 </script>
 
@@ -52,52 +101,41 @@
 		<AlertCircle class="mr-2 h-4 w-4" />
 		<Alert.Title>Warning</Alert.Title>
 		<Alert.Description>
-			All existing data will be deleted and replaced with imported data. This action cannot be
-			undone. Please make sure you have a backup if needed.
+			Using these tools can result in data loss. Use with caution.
 		</Alert.Description>
 	</Alert.Root>
 
 	<Card.Root class="rounded-lg p-6 shadow-md">
 		<Card.Header>
-			<h2 class="mb-4 text-xl font-semibold">Import Categories and Products</h2>
+			<h2 class="mb-4 text-xl font-semibold">Import and Clear Data</h2>
 		</Card.Header>
 		<Card.Content>
 			<p class="mb-6 text-gray-600">
-				Click the button below to start importing categories and products. This process will replace
-				all existing data in these categories.
+				Use the buttons below to add sample data or clear the entire local database.
 			</p>
-
-			{#if progress > 0 && progress < 100}
-				<div class="mb-6">
-					<div class="h-2.5 w-full rounded-full bg-gray-200">
-						<div class="h-2.5 rounded-full bg-primary" style="width: {progress}%"></div>
-					</div>
-					<p class="mt-2 text-sm text-gray-600">Import progress: {progress}%</p>
-				</div>
-			{/if}
 
 			<div class="flex flex-col space-y-3 sm:flex-row sm:space-x-3 sm:space-y-0">
 				<Button
-					onclick={startImport}
+					onclick={importSampleData}
 					disabled={isImporting}
-					class="w-full bg-green-800 text-white hover:bg-green-900 sm:w-auto"
+					class="w-full bg-blue-800 text-white hover:bg-blue-900 sm:w-auto"
 				>
 					<Upload class="mr-2 h-4 w-4" />
 					{isImporting ? 'Importing...' : 'Import Sample Data'}
 				</Button>
 
 				<Button
-					onclick={flushDatabase}
-					variant="outline"
-					class="w-full bg-red-800 text-white hover:bg-red-900 sm:w-auto"
+					onclick={clearDatabase}
+					variant="destructive"
+					class="w-full sm:w-auto"
 				>
 					<Trash class="mr-2 h-4 w-4" />
-					Clear Database
+					Clear Entire Database
 				</Button>
 
 				<Button onclick={goToHome} variant="outline" class="w-full sm:w-auto">
 					<Home class="mr-2 h-4 w-4" />
-					Back to Home
+					Back to POS
 				</Button>
 			</div>
 		</Card.Content>
