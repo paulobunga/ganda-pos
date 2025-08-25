@@ -4,7 +4,7 @@
 	import { RadioGroup, RadioGroupItem } from '$lib/components/ui/radio-group';
 	import { Label } from '$lib/components/ui/label';
 	import { toast } from 'svelte-sonner';
-	import { CreditCard, Banknote, Printer, Check } from 'lucide-svelte';
+	import { CreditCard, Banknote, Printer, Check, User } from 'lucide-svelte';
 	import { cartStore } from '../CartStore.svelte';
 	import * as m from '$lib/paraglide/messages.js';
 	import { numberWithCurrency } from '$lib/tools/numbering';
@@ -22,6 +22,10 @@
 	let enableCheckout = $derived(cartStore.cart.length > 0);
 	let autoCloseTimer = $state<number | null>(null);
 	let remainingSeconds = $state(defaultAutoCloseSeconds);
+
+	// Cash payment states
+	let cashTendered = $state(0);
+	let change = $derived(cashTendered > 0 ? cashTendered - cartStore.grandTotal : 0);
 
 	// Payment methods with enhanced metadata
 	const resetDialog = () => {
@@ -58,21 +62,34 @@
 			name: m.pos_payment_bsc_usdt(),
 			icon: Banknote,
 			description: m.pos_payment_bsc_usdt_description()
+		},
+		{
+			id: 'tab',
+			name: 'Pay with Tab',
+			icon: User,
+			description: 'Settle the currently loaded customer tab.'
 		}
 	];
 
 	const processPayment = async () => {
+		if (selectedPaymentMethod === 'cash' && cashTendered < cartStore.grandTotal) {
+			toast.error('Cash tendered is less than the total amount.');
+			return;
+		}
+
 		isProcessing = true;
-		paidAmount = cartStore.total;
+		paidAmount = cartStore.grandTotal; // Use grandTotal to be more accurate
 
-		// TODO: Add payment processing logic
+		await cartStore.checkout(selectedPaymentMethod as 'cash' | 'credit_card' | 'bsc_usdt' | 'tab');
 
-		cartStore.checkout();
+		// If checkout was successful, cart will be empty.
+		if (cartStore.cart.length === 0) {
+			isCompleted = true;
+			// Start auto-close timer when payment is completed
+			startAutoCloseTimer();
+		}
+
 		isProcessing = false;
-		isCompleted = true;
-
-		// Start auto-close timer when payment is completed
-		startAutoCloseTimer();
 	};
 
 	const startAutoCloseTimer = () => {
@@ -134,32 +151,52 @@
 
 					<RadioGroup value={selectedPaymentMethod} class="grid gap-4 md:grid-cols-3">
 						{#each paymentMethods as method}
-							<Button
-								class="relative flex h-auto flex-col items-start gap-2 rounded-xl border bg-card p-4 text-left transition-all hover:bg-muted
+							{#if method.id !== 'tab' || cartStore.loadedTab}
+								<Button
+									class="relative flex h-auto flex-col items-start gap-2 rounded-xl border bg-card p-4 text-left transition-all hover:bg-muted
 								{selectedPaymentMethod === method.id
-									? 'border-blue-500 bg-blue-500/5 ring-2 ring-blue-500/20'
-									: 'hover:border-blue-500/30'}"
-								onclick={() => (selectedPaymentMethod = method.id)}
-							>
-								<div class="flex w-full items-center gap-3">
-									<div class="rounded-lg bg-blue-500/10 p-2">
-										<method.icon
-											class="h-6 w-6 {selectedPaymentMethod === method.id
-												? 'text-blue-500'
-												: 'text-muted-foreground'}"
-										/>
+										? 'border-blue-500 bg-blue-500/5 ring-2 ring-blue-500/20'
+										: 'hover:border-blue-500/30'}"
+									onclick={() => (selectedPaymentMethod = method.id)}
+								>
+									<div class="flex w-full items-center gap-3">
+										<div class="rounded-lg bg-blue-500/10 p-2">
+											<method.icon
+												class="h-6 w-6 {selectedPaymentMethod === method.id
+													? 'text-blue-500'
+													: 'text-muted-foreground'}"
+											/>
+										</div>
+										<div class="flex-1 text-wrap">
+											<Label for={method.id} class="cursor-pointer font-bold text-blue-500">
+												{method.name}
+											</Label>
+											<p class="text-xs text-muted-foreground">{method.description}</p>
+										</div>
 									</div>
-									<div class="flex-1 text-wrap">
-										<Label for={method.id} class="cursor-pointer font-bold text-blue-500">
-											{method.name}
-										</Label>
-										<p class="text-xs text-muted-foreground">{method.description}</p>
-									</div>
-								</div>
-								<RadioGroupItem value={method.id} id={method.id} class="sr-only" />
-							</Button>
+									<RadioGroupItem value={method.id} id={method.id} class="sr-only" />
+								</Button>
+							{/if}
 						{/each}
 					</RadioGroup>
+
+					{#if selectedPaymentMethod === 'cash'}
+						<div class="mt-6 space-y-2">
+							<Label for="cash-tendered" class="text-lg font-medium">Cash Tendered</Label>
+							<Input
+								id="cash-tendered"
+								type="number"
+								bind:value={cashTendered}
+								placeholder="Enter amount received"
+								class="h-12 text-lg"
+							/>
+							{#if cashTendered > 0 && change > 0}
+								<p class="pt-2 text-xl font-medium text-green-600">
+									Change: {numberWithCurrency(change)}
+								</p>
+							{/if}
+						</div>
+					{/if}
 				</div>
 			</div>
 
@@ -188,9 +225,18 @@
 					<Check class="h-8 w-8 text-green-500" />
 				</div>
 				<h3 class="mb-2 text-2xl font-bold text-green-500">{m.pos_payment_successful()}</h3>
-				<p class="mb-8 text-muted-foreground">
+				<p class="mb-4 text-muted-foreground">
 					{@html m.pos_payment_successful_description({ amount: numberWithCurrency(paidAmount) })}
 				</p>
+
+				{#if selectedPaymentMethod === 'cash'}
+					<div class="mb-8 rounded-lg bg-green-500/10 p-4">
+						<div class="text-sm text-green-600">Change to give back</div>
+						<div class="text-3xl font-bold text-green-600">
+							{numberWithCurrency(change)}
+						</div>
+					</div>
+				{/if}
 
 				<div class="flex w-full gap-3">
 					<Button

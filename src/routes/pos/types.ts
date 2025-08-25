@@ -29,3 +29,26 @@ export interface SavedCart {
 	items: CartItem[];
 	timestamp: string;
 }
+
+// New type for customer tabs, which will replace SavedCart
+export interface CustomerTab {
+	id?: number; // Optional because it's auto-incremented by Dexie
+	name: string;
+	items: CartItem[];
+	total: number;
+	createdAt: string;
+	updatedAt: string;
+}
+
+// New type for sales transactions
+export interface Sale {
+	id?: number; // Optional because it's auto-incremented by Dexie
+	items: CartItem[];
+	total: number;
+	grandTotal: number; // Including tax and discount
+	discount: number;
+	tax: number;
+	paymentMethod: 'cash' | 'credit_card' | 'bsc_usdt' | 'tab';
+	timestamp: string;
+	cashierId?: number; // Optional for now
+}

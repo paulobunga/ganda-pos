@@ -2,15 +2,20 @@
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
 	import * as Avatar from '$lib/components/ui/avatar/index.js';
 	import { buttonVariants } from '$lib/components/ui/button/index.js';
-	import { User, Moon, Sun } from 'lucide-svelte';
+	import { User, Moon, Sun, DollarSign, Printer, CheckSquare } from 'lucide-svelte';
 	import { cn } from '$lib/utils.js';
 	import { toggleMode } from 'mode-watcher';
 	import { goto } from '$app/navigation';
+    import CashDrawerDialog from './CashDrawerDialog.svelte';
 
 	const logout = () => {
 		goto('/');
 	};
+
+    let showCashDrawerDialog = $state(false);
 </script>
+
+<CashDrawerDialog bind:open={showCashDrawerDialog} />
 
 <DropdownMenu.Root>
 	<DropdownMenu.Trigger
@@ -38,6 +43,18 @@
 			</DropdownMenu.GroupHeading>
 			<DropdownMenu.Separator />
 			<DropdownMenu.Group>
+                <DropdownMenu.Item class="flex cursor-pointer items-center" onclick={() => showCashDrawerDialog = true}>
+                    <DollarSign class="mr-2 h-4 w-4" />
+                    <span>Cash Drawer</span>
+                </DropdownMenu.Item>
+                <DropdownMenu.Item class="flex cursor-pointer items-center" onclick={() => goto('/z-out')}>
+                    <Printer class="mr-2 h-4 w-4" />
+                    <span>Z-Out Report</span>
+                </DropdownMenu.Item>
+                <DropdownMenu.Item class="flex cursor-pointer items-center" onclick={() => goto('/roadmap')}>
+                    <CheckSquare class="mr-2 h-4 w-4" />
+                    <span>Roadmap</span>
+                </DropdownMenu.Item>
 				<DropdownMenu.Item class="flex cursor-pointer items-center" onclick={toggleMode}>
 					<div class="hidden items-center justify-start gap-2 dark:flex">
 						<Sun class="h-[1.2rem] w-[1.2rem] rotate-0 transition-all dark:-rotate-90" /> Light Mode

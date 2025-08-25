@@ -12,7 +12,7 @@
 	// Import page components
 	import ProductCatalog from './ProductCatalog.svelte';
 	import ShoppingCartSideBar from './ShoppingCartSideBar.svelte';
-	import SavedCarts from './SavedCarts.svelte';
+	import CustomerTabs from './CustomerTabs.svelte';
 	import WeightInputDialog from './WeightInputDialog.svelte';
 	import UserNav from './UserNav.svelte';
 	// Import cart store
@@ -72,9 +72,9 @@
 				<ProductCatalog />
 			</div>
 
-			<!-- Saved Carts Section (conditionally shown) -->
+			<!-- Customer Tabs Section (conditionally shown) -->
 			{#if cartStore.showSavedCarts}
-				<SavedCarts />
+				<CustomerTabs />
 			{/if}
 		</div>
 	</div>

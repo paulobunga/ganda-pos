@@ -1,6 +1,7 @@
 import { goto } from '$app/navigation';
-import type { WeightedProduct, Product, SavedCart } from './types';
+import type { WeightedProduct, Product, SavedCart, CustomerTab } from './types';
 import { toast } from 'svelte-sonner';
+import { db } from '$lib/db';
 import * as m from '$lib/paraglide/messages.js';
 import { localStore, type LocalStorageType } from '$lib/localStore.svelte';
 import { getCurrentTime } from '$lib/tools/time';
@@ -12,8 +13,7 @@ export class CartStore {
 	localCart: LocalStorageType<{ product: WeightedProduct | Product; quantity: number }[]> =
 		localStore('pos.cart', [] as { product: WeightedProduct | Product; quantity: number }[]);
 	cart: { product: WeightedProduct | Product; quantity: number }[] = $state(this.localCart.current);
-	localSavedCarts: LocalStorageType<SavedCart[]> = localStore('pos.savedCarts', [] as SavedCart[]);
-	savedCarts: SavedCart[] = $state(this.localSavedCarts.current);
+	savedCarts: CustomerTab[] = $state([]); // Will hold customer tabs from Dexie
 
 	// Checkout state variables
 	discount = $state(0);
@@ -21,10 +21,23 @@ export class CartStore {
 
 	// UI state variables
 	searchQuery = $state('');
-	newCartName = $state('');
+	newCartName = $state(''); // Will be used for naming the tab
 	isSaving = $state(false);
-	localGuestCount: LocalStorageType<number> = localStore('pos.guestCount', 1);
-	guestCount = $state(this.localGuestCount.current);
+	loadedTab: CustomerTab | null = $state(null);
+
+	// --- Cash Management ---
+	localOpeningBalance: LocalStorageType<number> = localStore('pos.openingBalance', 0);
+	openingBalance = $state(this.localOpeningBalance.current);
+
+	localCashSales: LocalStorageType<number> = localStore('pos.cashSales', 0);
+	cashSalesTotal = $state(this.localCashSales.current);
+
+	localPettyCash: LocalStorageType<number> = localStore('pos.pettyCash', 0);
+	pettyCash = $state(this.localPettyCash.current);
+
+	get expectedCashInDrawer() {
+		return this.openingBalance + this.cashSalesTotal - this.pettyCash;
+	}
 	showSavedCarts = $state(false);
 	showCartOnMobile = $state(false);
 	#isMobile: IsMobile | null = $state(null);
@@ -32,6 +45,11 @@ export class CartStore {
 	constructor() {
 		$effect.root(() => {
 			this.#isMobile = new IsMobile();
+
+			// Load tabs from Dexie on init
+			db.customerTabs.toArray().then((tabs) => {
+				this.savedCarts = tabs;
+			});
 		});
 	}
 
@@ -103,60 +121,103 @@ export class CartStore {
 	clearCart = () => {
 		this.cart = [];
 		this.localCart.current = [];
+		this.loadedTab = null; // Also clear the loaded tab
 	};
 
-	checkout = () => {
-		toast.success(m.pos_checkout_success({ total: this.total.toFixed(2) }));
-		this.clearCart();
-		this.showCartOnMobile = false;
+	checkout = async (paymentMethod: 'cash' | 'credit_card' | 'bsc_usdt' | 'tab') => {
+		if (this.cart.length === 0) return;
+
+		if (paymentMethod === 'tab') {
+			if (!this.loadedTab || !this.loadedTab.id) {
+				toast.error('No tab is loaded to be paid.');
+				return;
+			}
+		}
+
+		const sale: Sale = {
+			items: [...this.cart],
+			total: this.total,
+			grandTotal: this.grandTotal,
+			discount: this.discount,
+			tax: this.tax,
+			paymentMethod: paymentMethod,
+			timestamp: new Date().toISOString()
+			// cashierId can be added later
+		};
+
+		try {
+			await db.sales.add(sale);
+
+			if (paymentMethod === 'cash') {
+				this.cashSalesTotal += sale.grandTotal;
+				this.localCashSales.current = this.cashSalesTotal;
+			}
+
+			if (paymentMethod === 'tab' && this.loadedTab?.id) {
+				await db.customerTabs.delete(this.loadedTab.id);
+				this.savedCarts = await db.customerTabs.toArray(); // Refresh list
+			}
+
+			toast.success(`Checkout successful with ${paymentMethod}.`);
+			this.clearCart();
+			this.showCartOnMobile = false;
+		} catch (error) {
+			toast.error('Checkout failed.');
+			console.error(error);
+		}
 	};
 
 	printReceipt = () => {
 		toast.success(m.pos_print_receipt());
 	};
 
-	// Saved carts methods
-	saveCurrentCart = () => {
+	// Customer Tab methods
+	saveOrUpdateTab = async () => {
 		if (this.cart.length === 0) return;
 
 		this.isSaving = true;
 
-		// Use "Guest X" if no name provided
-		const cartName = this.newCartName.trim() || m.pos_guest({ queue_no: this.guestCount });
-		if (!this.newCartName.trim()) {
-			this.guestCount++;
-			this.localGuestCount.current = this.guestCount;
+		let tabToSave: CustomerTab;
+
+		if (this.loadedTab) {
+			// Update existing tab
+			tabToSave = {
+				...this.loadedTab,
+				items: [...this.cart],
+				total: this.grandTotal,
+				updatedAt: new Date().toISOString()
+			};
+		} else {
+			// Create new tab
+			const tabName = this.newCartName.trim() || `Guest ${this.savedCarts.length + 1}`;
+			tabToSave = {
+				name: tabName,
+				items: [...this.cart],
+				total: this.grandTotal,
+				createdAt: new Date().toISOString(),
+				updatedAt: new Date().toISOString()
+			};
 		}
 
-		// Add the new cart
-		this.savedCarts = [
-			...this.savedCarts,
-			{
-				id: Date.now(),
-				name: cartName,
-				items: [...this.cart],
-				timestamp: getCurrentTime().toISOString()
-			}
-		];
-
-		this.localSavedCarts.current = this.savedCarts;
-
-		this.newCartName = '';
-		this.isSaving = false;
-		this.clearCart();
+		try {
+			await db.customerTabs.put(tabToSave);
+			this.savedCarts = await db.customerTabs.toArray(); // Refresh list
+			this.newCartName = '';
+			this.clearCart(); // This will also clear loadedTab
+			toast.success(`Tab "${tabToSave.name}" saved.`);
+		} catch (error) {
+			toast.error('Failed to save tab.');
+			console.error(error);
+		} finally {
+			this.isSaving = false;
+		}
 	};
 
-	loadSavedCart = (savedCart: SavedCart) => {
-		// load the saved cart into the cart
-		this.cart = [...savedCart.items];
+	loadTab = (tab: CustomerTab) => {
+		this.cart = [...tab.items];
 		this.localCart.current = this.cart;
-
-		// Remove the loaded cart from saved carts
-		this.deleteSavedCart(savedCart.id);
-
-		if (this.cart.length === 0) {
-			this.showSavedCarts = false;
-		}
+		this.loadedTab = tab; // Set the currently loaded tab
+		// Note: We don't delete the tab on load. It persists until paid.
 
 		if (this.#isMobile?.current) {
 			this.showSavedCarts = false;
@@ -164,15 +225,32 @@ export class CartStore {
 		}
 	};
 
-	deleteSavedCart = (id: number) => {
-		this.savedCarts = this.savedCarts.filter((cart) => cart.id !== id);
-		this.localSavedCarts.current = this.savedCarts;
+	deleteTab = async (id: number | undefined) => {
+		if (!id) return;
+		try {
+			await db.customerTabs.delete(id);
+			this.savedCarts = await db.customerTabs.toArray(); // Refresh list
+			toast.success(`Tab deleted.`);
+		} catch (error) {
+			toast.error('Failed to delete tab.');
+			console.error(error);
+		}
 
 		if (this.savedCarts.length === 0) {
-			this.guestCount = 1;
-			this.localGuestCount.current = 1;
 			this.showSavedCarts = false;
 		}
+	};
+
+	// --- Cash Management Methods ---
+	setOpeningBalance = (amount: number) => {
+		this.openingBalance = amount;
+		this.localOpeningBalance.current = amount;
+		// Reset daily totals when setting opening balance
+		this.cashSalesTotal = 0;
+		this.localCashSales.current = 0;
+		this.pettyCash = 0;
+		this.localPettyCash.current = 0;
+		toast.success('Opening balance has been set.');
 	};
 
 	// UI toggle methods
